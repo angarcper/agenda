@@ -1,0 +1,20 @@
+# Bases de datos locales
+*.db
+*.sqlite3
+
+# Archivos de Excel exportados
+*.xlsx
+
+# Archivos de configuración de Streamlit y secretos
+.streamlit/secrets.toml
+.env
+
+# Archivos basura de Python
+__pycache__/
+*.pyc
+.DS_Store
+
+# Entorno virtual
+agenda/
+venv/
+env/
