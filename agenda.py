@@ -427,7 +427,7 @@ def show_stats_page():
         st.info("Aún no has completado exámenes o finales.")
 # --- Streamlit UI ---
 
-st.set_page_config(page_title="Agenda - Ana", layout='wide')
+st.set_page_config(page_title="Agenda", layout='wide')
 st.title("📚 Agenda")
 
 # Sidebar: controls + add task

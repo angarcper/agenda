@@ -18,3 +18,8 @@ __pycache__/
 agenda/
 venv/
 env/
+
+# Archivos de credenciales de Google
+*.json
+
+notionPrueba.py
