@@ -1,5 +1,5 @@
 """
-Streamlit Task Manager
+Streamlit Task Manager for Ana
 Features:
 - Categories (initial list + add new)
 - Tasks with optional deadline
@@ -30,18 +30,26 @@ from datetime import datetime, date, timedelta
 from streamlit_calendar import calendar
 #import io
 from notion_client import Client
-# Mi token de integración de notion
-notion = Client(auth=st.secrets["NOTION_TOKEN"])
-# IDs de las bases de datos de Notion ocultos de forma segura
-dbcharacter_id = st.secrets["DB_CHARACTER_ID"]
-dbstats_id = st.secrets["DB_STATS_ID"]
-dbboss_id = st.secrets["DB_BOSS_ID"]
-dbskills_id = st.secrets["DB_SKILLS_ID"]
-dbgym_id = st.secrets["DB_GYM_ID"]
-dbquests_id = st.secrets["DB_QUESTS_ID"]
-dbexpenses_id = st.secrets["DB_EXPENSES_ID"]
-dbbuffs_id = st.secrets["DB_BUFFS_ID"]
-dbdebuffs_id = st.secrets["DB_DEBUFFS_ID"]
+from dotenv import load_dotenv
+# Cargar las variables del archivo .env (si existe localmente)
+load_dotenv()
+
+# Obtener los valores mediante variables de entorno
+NOTION_TOKEN = os.getenv("NOTION_TOKEN", "")
+
+# Inicializar cliente de Notion
+notion = Client(auth=NOTION_TOKEN) if NOTION_TOKEN else None
+
+# IDs de bases de datos desde variables de entorno
+dbcharacter_id = os.getenv("NOTION_DB_CHARACTER", "")
+dbstats_id = os.getenv("NOTION_DB_STATS", "")
+dbboss_id = os.getenv("NOTION_DB_BOSS", "")
+dbskills_id = os.getenv("NOTION_DB_SKILLS", "")
+dbgym_id = os.getenv("NOTION_DB_GYM", "")
+dbquests_id = os.getenv("NOTION_DB_QUESTS", "")
+dbexpenses_id = os.getenv("NOTION_DB_EXPENSES", "")
+dbbuffs_id = os.getenv("NOTION_DB_BUFFS", "")
+dbdebuffs_id = os.getenv("NOTION_DB_DEBUFFS", "")
 
 # Leer elementos de la base de datos
 
@@ -263,7 +271,7 @@ def get_tasks(include_done=False):
     if include_done:
         cur.execute("SELECT * FROM tasks")
     else:
-        cur.execute("SELECT * FROM tasks WHERE state='pendiente'")
+        cur.execute("SELECT * FROM tasks WHERE state!='hecho'")
     rows = cur.fetchall()
     conn.close()
     # convert to list of dicts
@@ -397,7 +405,7 @@ def show_stats_page():
             counts = df_total['category'].value_counts().reset_index()
             counts.columns = ['Categoría', 'Cantidad']
             fig_bar = px.bar(counts, x='Cantidad', y='Categoría', orientation='h', color='Categoría')
-            st.plotly_chart(fig_bar, use_container_width=True)
+            st.plotly_chart(fig_bar, width=True)
         else:
             st.info("Sin datos.")
 
@@ -415,19 +423,19 @@ def show_stats_page():
             daily_counts = daily_counts.sort_values('Fecha')
             
             fig_line = px.line(daily_counts, x='Fecha', y='Tareas', markers=True)
-            st.plotly_chart(fig_line, use_container_width=True)
+            st.plotly_chart(fig_line, width=True)
         else:
             st.warning("No hay datos históricos con fecha (empieza a completar tareas hoy para ver la línea).")
 
     # --- TABLA DE EXÁMENES PASADOS ---
     st.subheader("Histórico de Exámenes y Finales")
     if not exams_done.empty:
-        st.dataframe(exams_done[['name', 'category', 'deadline', 'completed_date']], use_container_width=True)
+        st.dataframe(exams_done[['name', 'category', 'deadline', 'completed_date']], width=True)
     else:
         st.info("Aún no has completado exámenes o finales.")
 # --- Streamlit UI ---
 
-st.set_page_config(page_title="Agenda", layout='wide')
+st.set_page_config(page_title="Agenda - Ana", layout='wide')
 st.title("📚 Agenda")
 
 # Sidebar: controls + add task
@@ -575,30 +583,28 @@ def mostrar_tarea(r,s,e): #r: row, s: shows category, e: its an exam
             fecha_cute = datetime.strptime(fecha_str, "%Y-%m-%d").strftime("%d/%m")
         else:
             fecha_cute = ""
-        
-        # --- Estado del menú de borrado ---
-        # Clave única para saber si estamos borrando ESTA tarea específica
-        delete_key = f"confirm_delete_{r['id']}"
-        if delete_key not in st.session_state:
-            st.session_state[delete_key] = False
-        
         if f"show_info_{r['id']}" not in st.session_state:
             st.session_state[f"show_info_{r['id']}"] = False
-            
-        # --- Visualización de la Tarea ---
-        # Si la tarea está cancelada, la mostramos un poco más apagada o tachada visualmente (opcional)
-        opacity = "0.6" if r['state'] == 'cancelado' else "1.0"
-        
-        html_content = ""
+        # Bloque principal coloreado
         if not s or r['category'] == "OTROS":
-             html_content = f"""<div style="background-color:{bgcolor}; opacity:{opacity}; padding:10px; border-radius:10px; margin-bottom:5px"><b>{r['name']}  &nbsp;&nbsp; {fecha_cute} </b></div>"""
-        else:
-             html_content = f"""<div style="background-color:{bgcolor}; opacity:{opacity}; padding:10px; border-radius:10px; margin-bottom:5px"><b>{r['name']}</b>  &nbsp;&nbsp; {r['category']} &nbsp;&nbsp;&nbsp;&nbsp; <b>{fecha_cute}</b></div>"""
-        
-        c1.markdown(html_content, unsafe_allow_html=True)
-            
-        # --- BOTONES ---
-        
+            c1.markdown(
+                f"""
+                <div style="background-color:{bgcolor}; padding:10px; border-radius:10px; margin-bottom:5px">
+                    <b>{r['name']}  &nbsp;&nbsp; {fecha_cute} </b>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        else: # es un examen
+            c1.markdown(
+                f"""
+                <div style="background-color:{bgcolor}; padding:10px; border-radius:10px; margin-bottom:5px">
+                    <b>{r['name']}</b>  &nbsp;&nbsp; {r['category']} &nbsp;&nbsp;&nbsp;&nbsp; <b>{fecha_cute}</b>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
         # buttons
         if c2.button("✅ " , key=f"done_{r['id']}"):
             update_task_state(r['id'], 'hecho')
